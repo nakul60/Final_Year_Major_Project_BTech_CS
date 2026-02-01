@@ -8,4 +8,11 @@
     - run the streamlit app as: streamlit run temp.py
     - Replace the GEMINI API if exhausted.
 
+3. Screenshot Below:
+
+| Dashboard of Embedded Copilot |
+| :--------: | :------------: | :---------: |
+| ![Dashboard](Screenshots/image.png) |
+
+---
 ## ----WORK IN PROGRESS----
