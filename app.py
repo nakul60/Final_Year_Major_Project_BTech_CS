@@ -68,8 +68,8 @@ agent = st.session_state["agent"]
 st.session_state["platform"] = platform
 
 # Tabs
-tab_chat, tab_generate, tab_project, tab_knowledge, tab_history = st.tabs(
-    ["💬 Chat", "⚡ Generate Code", "🏗️ Project Builder", "📚 Knowledge Base", "📝 Debug"]
+tab_chat, tab_generate, tab_project, tab_knowledge, tab_history, tab_board = st.tabs(
+    ["💬 Chat", "⚡ Generate Code", "🏗️ Project Builder", "📚 Knowledge Base", "📝 Debug", "🛠️ Chat with Board"]
 )
 
 with tab_chat:
@@ -161,6 +161,31 @@ with tab_history:
         st.session_state.messages = []
         st.rerun()
     st.json({"Platform": platform, "Projects": st.session_state["projects_list"]})
+
+with tab_board:
+    st.subheader("🛠️ Chat with Board")
+    if 'board_messages' not in st.session_state:
+        st.session_state['board_messages'] = []
+
+    for msg in st.session_state['board_messages']:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    board_prompt = st.chat_input("Send a command or ask about the board...")
+    if board_prompt:
+        with st.chat_message("user"):
+            st.markdown(board_prompt)
+        st.session_state['board_messages'].append({"role": "user", "content": board_prompt})
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                # Use the agent to process the board chat prompt
+                result = asyncio.run(agent.process_request(board_prompt, platform, mode="board"))
+                if result["success"]:
+                    st.markdown(result["response"])
+                    st.session_state['board_messages'].append({"role": "assistant", "content": result["response"]})
+                else:
+                    st.error(result["error"])
 
 if selected_project:
     st.divider()
