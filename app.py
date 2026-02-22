@@ -15,7 +15,7 @@ from src.tools.power_estimator import power_profile_estimator_fn
 
 # Load environment variables from .env file
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+API_KEY = os.getenv("NVIDIA_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
 # Streamlit page config
 st.set_page_config(page_title="Embedded Systems AI Agent", layout="wide", page_icon="🤖")
@@ -29,7 +29,7 @@ for key, default in [("agent", None), ("platform", ""), ("projects_list", []), (
 
 def init_agent(platform):
     if not API_KEY:
-        st.error("API key not found! Set GEMINI_API_KEY in .env")
+        st.error("API key not found! Set NVIDIA_API_KEY or GEMINI_API_KEY in .env")
         return False
     try:
         st.session_state["agent"] = EmbeddedSystemsAgent(API_KEY)
@@ -50,6 +50,14 @@ def handle_rate_limit(msg):
 with st.sidebar:
     st.header("⚙️ Configuration")
     platform = st.selectbox("Platform", ["", "arduino", "esp32", "raspberry_pi"])
+    if platform == "raspberry_pi":
+        st.subheader("🔗 Raspberry Pi SSH Config")
+        ssh_host = st.text_input("RPi Host (IP or hostname)", key="ssh_host")
+        ssh_user = st.text_input("RPi Username", key="ssh_user")
+        ssh_pass = st.text_input("RPi Password", type="password", key="ssh_pass")
+        st.session_state["ssh_config"] = {"host": ssh_host, "user": ssh_user, "password": ssh_pass}
+    else:
+        st.session_state["ssh_config"] = {}
     if st.button("Initialize Agent"):
         init_agent(platform)
     
@@ -68,8 +76,8 @@ agent = st.session_state["agent"]
 st.session_state["platform"] = platform
 
 # Tabs
-tab_chat, tab_generate, tab_project, tab_knowledge, tab_history = st.tabs(
-    ["💬 Chat", "⚡ Generate Code", "🏗️ Project Builder", "📚 Knowledge Base", "📝 Debug"]
+tab_chat, tab_generate, tab_project, tab_knowledge, tab_history, tab_board = st.tabs(
+    ["💬 Chat", "⚡ Generate Code", "🏗️ Project Builder", "📚 Knowledge Base", "📝 Debug", "🛠️ Chat with Board"]
 )
 
 with tab_chat:
@@ -161,6 +169,31 @@ with tab_history:
         st.session_state.messages = []
         st.rerun()
     st.json({"Platform": platform, "Projects": st.session_state["projects_list"]})
+
+with tab_board:
+    st.subheader("🛠️ Chat with Board")
+    if 'board_messages' not in st.session_state:
+        st.session_state['board_messages'] = []
+
+    for msg in st.session_state['board_messages']:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    board_prompt = st.chat_input("Send a command or ask about the board...")
+    if board_prompt:
+        with st.chat_message("user"):
+            st.markdown(board_prompt)
+        st.session_state['board_messages'].append({"role": "user", "content": board_prompt})
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                ssh_config = st.session_state.get("ssh_config", {})
+                result = asyncio.run(agent.process_request(board_prompt, platform, mode="board", ssh_config=ssh_config))
+                if result["success"]:
+                    st.markdown(result["response"])
+                    st.session_state['board_messages'].append({"role": "assistant", "content": result["response"]})
+                else:
+                    st.error(result["error"])
 
 if selected_project:
     st.divider()
