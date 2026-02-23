@@ -194,6 +194,7 @@ class EmbeddedSystemsAgent:
                     HumanMessage(content=(
                         f"Platform: {platform}\n"
                         f"You are connected to a {platform} board.\n"
+                        f"For raspberry pi use ssh and for arduino use arduino-cli\n"
                         f"User request: {user_input}\n"
                         f"Reply ONLY with the exact shell command to fulfill the user request, tailored to the detected board. No explanation, no output, no formatting. For example: uptime"
                     ))
@@ -242,7 +243,7 @@ class EmbeddedSystemsAgent:
             explain_state = ProjectState(
                 messages=[
                     SystemMessage(content=get_system_prompt(platform)),
-                    HumanMessage(content=f"User asked: {user_input}\nCommand sent: {user_command}\nBoard output: {user_command_output}\nPlease explain the result to the user in a friendly way.")
+                    HumanMessage(content=f"User asked: {user_input}\nCommand sent: {user_command}\nBoard output: {user_command_output}\nFirst give the output to the user. For example, if the output for temperature is 56 degree C, then output, the temperature of your respective board is 56-degress Celcius, or if the user told to execute some piece of code then output, code executed successfully and the result obtained is whatever the code's actual output will be. After displaying the results, explain it to the user in a friendly way.")
                 ],
                 platform=platform,
                 requirements=user_input,

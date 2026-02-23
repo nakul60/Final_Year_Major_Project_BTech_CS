@@ -167,6 +167,7 @@ with tab_history:
     st.subheader("📝 Session Debug")
     if st.button("Clear History"):
         st.session_state.messages = []
+        st.session_state['board_messages'] = []
         st.rerun()
     st.json({"Platform": platform, "Projects": st.session_state["projects_list"]})
 
